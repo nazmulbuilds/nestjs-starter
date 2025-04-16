@@ -5,6 +5,7 @@ import { ZodSerializerInterceptor, ZodValidationPipe } from "nestjs-zod";
 
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { DatabaseModule } from "./database/database.module";
 import env from "./env";
 import { ExamplesModule } from "./examples/examples.module";
 import { HttpExceptionFilter } from "./http-exception.filter";
@@ -20,7 +21,7 @@ import { HttpExceptionFilter } from "./http-exception.filter";
           : { target: "pino-pretty" },
       },
     exclude: [{ method: RequestMethod.ALL, path: "check" }],
-  }), ExamplesModule],
+  }), DatabaseModule, ExamplesModule],
   controllers: [AppController],
   providers: [AppService, {
     provide: APP_PIPE,

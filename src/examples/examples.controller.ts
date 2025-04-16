@@ -1,36 +1,35 @@
 import { Body, Controller, Get, Param, Post } from "@nestjs/common";
-import { ApiBadRequestResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBadRequestResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { ZodSerializerDto } from "nestjs-zod";
 
-import { BadRequestExampleDto } from "./dtos/bad-request-example.dto";
-import { ExampleDto } from "./dtos/example.dto";
+import { generateBadRequestExample, generateNotFoundExample } from "../utils/generate-open-api-example";
+import { ExmaplesService } from "./examples.service";
+import { InsertExamplesDto, SelectExamplesDto } from "./schema";
 
 @Controller("examples")
 @ApiTags("Examples Section")
 // @ApiBearerAuth()
 export class ExamplesController {
+  constructor(private readonly examplesService: ExmaplesService) {}
+
   @Post()
-  @ApiOkResponse({ type: ExampleDto, description: "Create example" })
-  @ApiBadRequestResponse({ type: BadRequestExampleDto, description: "Bad request example" })
-  createPost(@Body() body: ExampleDto) {
-    return body;
+  @ApiCreatedResponse({ type: SelectExamplesDto, description: "Create example" })
+  @ApiBadRequestResponse(generateBadRequestExample(InsertExamplesDto.schema))
+  createExample(@Body() body: InsertExamplesDto) {
+    return this.examplesService.create(body);
   }
 
   @Get()
-  @ApiOkResponse({ type: [ExampleDto], description: "Get all examples" })
+  @ApiOkResponse({ type: [SelectExamplesDto], description: "Get all examples" })
   getAll() {
-    return [];
+    return this.examplesService.getAll();
   }
 
   @Get(":id")
-  @ZodSerializerDto(ExampleDto)
-  @ApiOkResponse({ type: ExampleDto, description: "Get a example by ID" })
-  // eslint-disable-next-line unused-imports/no-unused-vars
+  @ZodSerializerDto(SelectExamplesDto)
+  @ApiOkResponse({ type: SelectExamplesDto, description: "Get a example by ID" })
+  @ApiNotFoundResponse(generateNotFoundExample("Example"))
   getById(@Param("id") id: string) {
-    return {
-      title: "Hello",
-      content: "World",
-      authorId: 1,
-    };
+    return this.examplesService.getById(id);
   }
 }
