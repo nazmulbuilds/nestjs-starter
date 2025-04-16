@@ -1,42 +1,36 @@
 import { Module, RequestMethod } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { LoggerModule } from "nestjs-pino";
+import { ZodSerializerInterceptor, ZodValidationPipe } from "nestjs-zod";
 
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import env from "./env";
+import { ExamplesModule } from "./examples/examples.module";
+import { HttpExceptionFilter } from "./http-exception.filter";
 
 @Module({
-  imports: [ConfigModule.forRoot({
-    isGlobal: true,
-    validate: (config: Record<string, any>) => {
-      const requiredVariables = [
-        "NODE_ENV",
-        "PORT",
-      ];
-      const missingVariables = requiredVariables.filter(
-        key => !config[key],
-      );
-
-      if (missingVariables.length > 0) {
-        throw new Error(
-          `Missing environment variables: ${missingVariables.join(", ")}`,
-        );
-      }
-
-      return config;
-    },
-  }), LoggerModule.forRoot({
+  imports: [LoggerModule.forRoot({
     pinoHttp:
       {
         genReqId: () => { return crypto.randomUUID(); },
-        level: process.env.NODE_ENV === "production" ? "info" : "debug",
-        transport: process.env.NODE_ENV === "production"
+        level: env.NODE_ENV === "production" ? "info" : env.LOG_LEVEL,
+        transport: env.NODE_ENV === "production"
           ? undefined
           : { target: "pino-pretty" },
       },
     exclude: [{ method: RequestMethod.ALL, path: "check" }],
-  })],
+  }), ExamplesModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, {
+    provide: APP_PIPE,
+    useClass: ZodValidationPipe,
+  }, {
+    provide: APP_INTERCEPTOR,
+    useClass: ZodSerializerInterceptor,
+  }, {
+    provide: APP_FILTER,
+    useClass: HttpExceptionFilter,
+  }],
 })
 export class AppModule {}
